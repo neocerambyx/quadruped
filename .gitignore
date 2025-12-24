@@ -8,3 +8,5 @@ Thumbs.db
 *.SLDPRT
 *.SLDASM
 *.SLDDRW
+solidworks/
+proto/
