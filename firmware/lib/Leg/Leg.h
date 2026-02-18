@@ -4,24 +4,29 @@
 #include <Joint.h>
 
 struct LegConfig {
-    JointConfig hip; // joint 1
-    JointConfig knee; // joint 2
+    JointConfig coxa;   // Joint 1
+    JointConfig femur;  // Joint 2
+    JointConfig tibia;  // Joint 3
 
-    float femurLength;  // link 1
-    float tibiaLength;  // link 2
+    float coxaLength;   // Link 1
+    float femurLength;  // Link 2
+    float tibiaLength;  // Link 3
 };
 
 class Leg {
 public:
     Leg(Adafruit_PWMServoDriver* driver, LegConfig config);
 
-    void moveTo(float x, float y);
+    void moveTo(float x, float y, float z);
 
-    void home();  // return to safe position
+    void home();  // Return to safe position
 
-private:
-    LegConfig _cfg;  // store settings in class
+    void fold(); // Home abducted 90 deg.
 
-    Joint _hip;
-    Joint _knee;
+public:
+    LegConfig _cfg;  // Store settings in class
+
+    Joint _coxa;
+    Joint _femur;
+    Joint _tibia;
 };
