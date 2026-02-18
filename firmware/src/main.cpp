@@ -5,29 +5,35 @@
 #include <math.h>
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
-// servo consts
-constexpr uint16_t SERVOMIN = 140;  // min pulse width microsec
-constexpr uint16_t SERVOMAX = 560;  // max pulse width microsec
-constexpr uint8_t FREQ = 50;        // servo frequency in Hz
 
-// leg consts
-constexpr float LINK1_LENGTH = 8.0f;
-constexpr float LINK2_LENGTH = 11.5f;
+// Servo Constants
+constexpr uint16_t SERVOMIN = 140;  // Min. Pulse Width (µs)
+constexpr uint16_t SERVOMAX = 520;  // Max. Pulse Width (µs)
+constexpr uint8_t FREQ = 50;        // PWM Period (Hz)
+
+// Mechanical Constants
+constexpr float COXA_LENGTH = 2.9f;   // Hip adduction/abduction
+constexpr float FEMUR_LENGTH = 6.0f;  // Hip flexion
+constexpr float TIBIA_LENGTH = 8.0f;  // Knee flexion
 
 const LegConfig FRONT_LEFT_CONF = {
 
-    .hip = {.id = 0, .minPulse = SERVOMIN, .maxPulse = SERVOMAX, .minAngle = 0.0f, .maxAngle = 180.0f, .inverted = false},
+    .coxa = {.id = 0, .minPulse = SERVOMIN, .maxPulse = SERVOMAX, .minAngle = 0.0f, .maxAngle = 180.0f, .offset = 0.0f, .inverted = false},
 
-    .knee = {.id = 1, .minPulse = SERVOMIN, .maxPulse = SERVOMAX, .minAngle = 25.0f, .maxAngle = 160.0f, .inverted = false},
+    .femur = {.id = 1, .minPulse = SERVOMIN, .maxPulse = SERVOMAX, .minAngle = 12.0f, .maxAngle = 180.0f, .offset = 5.0f, .inverted = true},  // TODO
 
-    .femurLength = LINK1_LENGTH,
-    .tibiaLength = LINK2_LENGTH};
+    .tibia = {.id = 2, .minPulse = SERVOMIN, .maxPulse = SERVOMAX, .minAngle = 0.0f, .maxAngle = 110.0f, .inverted = false},
+
+    .coxaLength = COXA_LENGTH,
+    .femurLength = FEMUR_LENGTH,
+    .tibiaLength = TIBIA_LENGTH};
 
 Leg testLeg(&pwm, FRONT_LEFT_CONF);
 
-// leg state
+// Leg State
 float footX = 0;
 float footY = 0;
+float footZ = 0;
 
 void setup() {
     Serial.begin(115200);
@@ -36,11 +42,15 @@ void setup() {
     Serial.println("Initialized. \n");
 
     pwm.begin();
-    pwm.setOscillatorFrequency(27000000);  // 25MHz internal clock but ~27MHz actual reccomended by manufacturer
+    pwm.setOscillatorFrequency(27000000);  // 25MHz internal clock but ~27MHz actual recommended by manufacturer
+    // Need oscilliscope to get chip's precise unique freq.; don't have one yet
     pwm.setPWMFreq(FREQ);
 
     Serial.println("Homing...");
     testLeg.home();
+    delay(2000);
+    testLeg.fold();
+    // 0,8,9 for home rotated 90 degrees
 }
 
 void loop() {
@@ -48,18 +58,22 @@ void loop() {
         String input = Serial.readStringUntil('\n');
         input.trim();
 
-        int separator = input.indexOf(':');
-        if (separator > 0) {
-            float x = input.substring(0, separator).toFloat();
-            float y = input.substring(separator + 1).toFloat();
+        int firstSep = input.indexOf(',');
+        int secondSep = input.indexOf(',', firstSep + 1);
+
+        if (firstSep > 0 && secondSep > firstSep) {
+            float x = input.substring(0, firstSep).toFloat();
+            float y = input.substring(firstSep + 1, secondSep).toFloat();
+            float z = input.substring(secondSep + 1).toFloat();
 
             Serial.print("Moving to: ");
             Serial.print(x);
             Serial.print(", ");
-            Serial.println(y);
+            Serial.print(y);
+            Serial.print(", ");
+            Serial.println(z);
 
-            testLeg.moveTo(x, y);
+            testLeg.moveTo(x, y, z);
         }
     }
-    delay(10);
 }
