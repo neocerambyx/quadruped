@@ -14330,6 +14330,48 @@
 			)
 		)
 	)
+	(sheet
+		(at 314.96 5.08)
+		(size 297.18 205.74)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "2df25863-0376-4a82-8ac2-c25da28b9909")
+		(property "Sheetname" "Sheet2"
+			(at 314.96 4.3684 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Sheet2.kicad_sch"
+			(at 314.96 211.4046 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "logic_board_v1"
+				(path "/3d6d34b6-2270-42d8-9a55-b901109db90f"
+					(page "2")
+				)
+			)
+		)
+	)
 	(sheet_instances
 		(path "/"
 			(page "1")
