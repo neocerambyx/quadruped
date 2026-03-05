@@ -13,3 +13,5 @@ proto/
 /electronics/rev1/quadruped rev1/quadruped rev1-backups
 /electronics/logic board v1/logic_board_v1-backups
 *.lck
+electronics/logic board v1/\#auto_saved_files\#
+electronics/logic board v1/fp-info-cache
