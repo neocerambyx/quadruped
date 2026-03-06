@@ -15,17 +15,24 @@ float toDeg(float rad) {
 void Leg::moveTo(float x, float y, float z) {
     float r2 = x * x + z * z;
 
+    float r_yz = sqrt(y*y + z*z);
+
     float L_coxa = _cfg.coxaLength;
     float L1 = _cfg.femurLength;
     float L2 = _cfg.tibiaLength;
 
     float x_loc = sqrt(r2) - L_coxa;
+    
+    float y_loc = r_yz - L_coxa;
 
-    float coxa_rad = atan2(z, x);
 
-    float phi = acos((x_loc * x_loc + y * y - L1 * L1 - L2 * L2) / (2 * L1 * L2));
+    // float coxa_rad = atan2(z, x);
 
-    float hip_rad = atan2(y, x_loc) - atan2(L2 * sin(phi), L1 + L2 * cos(phi));
+    float coxa_rad = atan2(z, y);
+
+    float phi = acos((x * x + y_loc * y_loc - L1 * L1 - L2 * L2) / (2 * L1 * L2));
+
+    float hip_rad = atan2(y_loc, x) - atan2(L2 * sin(phi), L1 + L2 * cos(phi));
 
     float knee_deg = 180.0 - (phi * 180.0 / M_PI);
 
@@ -62,5 +69,5 @@ void Leg::home() {
 }
 
 void Leg::fold() {
-    moveTo(0, _cfg.tibiaLength, _cfg.femurLength + _cfg.coxaLength);
+    moveTo(_cfg.femurLength + _cfg.coxaLength,0, _cfg.tibiaLength);
 }
