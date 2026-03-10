@@ -1,57 +1,73 @@
 #include <Leg.h>
 
-Leg::Leg(Adafruit_PWMServoDriver* driver, LegConfig config) : _cfg(config), _hip(driver, config.hip), _knee(driver, config.knee) {
+Leg::Leg(Adafruit_PWMServoDriver* driver, LegConfig config)
+    : _cfg(config), _coxa(driver, config.coxa), _femur(driver, config.femur), _tibia(driver, config.tibia) {
 }
 
-void Leg::moveTo(float x, float y) {
-    // put ik code here
+#include <Arduino.h>
+#include <math.h>
 
+// Helper to convert radians to degrees
+float toDeg(float rad) {
+    return rad * 180.0 / PI;
+}
+
+void Leg::moveTo(float x, float y, float z) {
+    float r2 = x * x + z * z;
+
+    float r_yz = sqrt(y*y + z*z);
+
+    float L_coxa = _cfg.coxaLength;
     float L1 = _cfg.femurLength;
     float L2 = _cfg.tibiaLength;
 
-    float r2 = x * x + y * y;  // distance to end effector from origin
+    float x_loc = sqrt(r2) - L_coxa;
+    
+    float y_loc = r_yz - L_coxa;
 
-    float maxReach = L1 + L2;
 
-    float distance = sqrt(r2);
-    if (distance > maxReach) {
-        x *= maxReach / distance; // scale to avoid reaching for impossible points
-        y *= maxReach / distance;
-    }
+    // float coxa_rad = atan2(z, x);
 
-    float innerAngle = (r2 - L1 * L1 - L2 * L2) / (2 * L1 * L2);
-    innerAngle = constrain(innerAngle, -1.0f, 1.0f);
+    float coxa_rad = atan2(z, y);
 
-    // knee angle (IK)
-    // 0 degs = leg fully extended, + = flexion
-    float kneeRadians = acos(innerAngle);
+    float phi = acos((x * x + y_loc * y_loc - L1 * L1 - L2 * L2) / (2 * L1 * L2));
 
-    // hip angle (IK)
-    // angle of femur ccw from +X axis
-    float hipRadians = atan2(y, x) - atan2(L2 * sin(kneeRadians), L1 + L2 * cos(kneeRadians));
+    float hip_rad = atan2(y_loc, x) - atan2(L2 * sin(phi), L1 + L2 * cos(phi));
 
-    float kneeDegrees = kneeRadians * (180.0 / M_PI);
+    float knee_deg = 180.0 - (phi * 180.0 / M_PI);
 
-    // hip servo is mounted such that servo 90deg = leg pointing down
-    // + rotation is CW
-    // ik angle is sign inverted such that CCW -> CW
-    float hipDegrees = -hipRadians * (180.0f / M_PI);
+    float servo_coxa = 90.0 + (coxa_rad * 180.0 / M_PI);
 
-    kneeDegrees = constrain(kneeDegrees, 25, 160);
+    float servo_hip = 90.0 + (hip_rad * 180.0 / M_PI);
 
-    _hip.setAngle(hipDegrees);
-    _knee.setAngle(kneeDegrees);
+    float servo_knee = 90.0 + knee_deg - servo_hip;
 
-    // Serial.print("Angle1: ");
-    // Serial.print(hipDegrees);
-    // Serial.print(" Angle2: ");
-    // Serial.println(kneeDegrees);
-    // Serial.print("X: ");
-    // Serial.print(x);
-    // Serial.print(" Y: ");
-    // Serial.println(y);
+    servo_coxa = constrain(servo_coxa, 0.0f, 180.0f);
+    servo_hip = constrain(servo_hip, 0.0f, 180.0f);
+    servo_knee = constrain(servo_knee, 0.0f, 180.0f);
+
+    _coxa.setAngle(servo_coxa);
+    _femur.setAngle(servo_hip);
+    _tibia.setAngle(servo_knee);
+
+    Serial.print("Target: (");
+    Serial.print(x);
+    Serial.print(", ");
+    Serial.print(y);
+    Serial.print(", ");
+    Serial.print(z);
+    Serial.print(") | Coxa: ");
+    Serial.print(servo_coxa);
+    Serial.print(" | Hip: ");
+    Serial.print(servo_hip);
+    Serial.print(" | Knee: ");
+    Serial.println(servo_knee);
 }
 
 void Leg::home() {
-    moveTo(_cfg.femurLength, _cfg.tibiaLength);
+    moveTo(_cfg.femurLength, _cfg.tibiaLength, 0);
+}
+
+void Leg::fold() {
+    moveTo(_cfg.femurLength + _cfg.coxaLength,0, _cfg.tibiaLength);
 }
