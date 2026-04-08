@@ -1,73 +1,96 @@
+#include <Arduino.h>
 #include <Leg.h>
+#include <math.h>
 
 Leg::Leg(Adafruit_PWMServoDriver* driver, LegConfig config)
     : _cfg(config), _coxa(driver, config.coxa), _femur(driver, config.femur), _tibia(driver, config.tibia) {
 }
 
-#include <Arduino.h>
-#include <math.h>
+static inline float toDeg(float rad) {
+    return rad * 180.0f / PI;
+}
 
-// Helper to convert radians to degrees
-float toDeg(float rad) {
-    return rad * 180.0 / PI;
+void Leg::solveIK(float x, float y, float z, float& outCoxa, float& outFemur, float& outTibia) {
+    float r_yz  = sqrt(y * y + z * z);
+    float L1    = _cfg.femurLength;
+    float L2    = _cfg.tibiaLength;
+    float Lc    = _cfg.coxaLength;
+
+    float y_loc   = r_yz - Lc;
+    float coxa_rad = atan2(z, y);
+    float cos_phi  = constrain((x*x + y_loc*y_loc - L1*L1 - L2*L2) / (2.0f*L1*L2), -1.0f, 1.0f);
+    float phi      = acos(cos_phi);
+    float hip_rad  = atan2(y_loc, x) - atan2(L2*sin(phi), L1 + L2*cos(phi));
+    float knee_deg = 180.0f - toDeg(phi);
+
+    outCoxa  = 90.0f + toDeg(coxa_rad);
+    outFemur = 90.0f + toDeg(hip_rad);
+    outTibia = 90.0f + knee_deg - outFemur;
 }
 
 void Leg::moveTo(float x, float y, float z) {
-    float r2 = x * x + z * z;
+    float c, f, t;
+    solveIK(x, y, z, c, f, t);
 
-    float r_yz = sqrt(y*y + z*z);
+    _coxa.setAngle(c);
+    _femur.setAngle(f);
+    _tibia.setAngle(t);
 
-    float L_coxa = _cfg.coxaLength;
-    float L1 = _cfg.femurLength;
-    float L2 = _cfg.tibiaLength;
-
-    float x_loc = sqrt(r2) - L_coxa;
-    
-    float y_loc = r_yz - L_coxa;
-
-
-    // float coxa_rad = atan2(z, x);
-
-    float coxa_rad = atan2(z, y);
-
-    float phi = acos((x * x + y_loc * y_loc - L1 * L1 - L2 * L2) / (2 * L1 * L2));
-
-    float hip_rad = atan2(y_loc, x) - atan2(L2 * sin(phi), L1 + L2 * cos(phi));
-
-    float knee_deg = 180.0 - (phi * 180.0 / M_PI);
-
-    float servo_coxa = 90.0 + (coxa_rad * 180.0 / M_PI);
-
-    float servo_hip = 90.0 + (hip_rad * 180.0 / M_PI);
-
-    float servo_knee = 90.0 + knee_deg - servo_hip;
-
-    servo_coxa = constrain(servo_coxa, 0.0f, 180.0f);
-    servo_hip = constrain(servo_hip, 0.0f, 180.0f);
-    servo_knee = constrain(servo_knee, 0.0f, 180.0f);
-
-    _coxa.setAngle(servo_coxa);
-    _femur.setAngle(servo_hip);
-    _tibia.setAngle(servo_knee);
-
+    // uncomment for single-step debugging.
+    /*
     Serial.print("Target: (");
-    Serial.print(x);
-    Serial.print(", ");
-    Serial.print(y);
-    Serial.print(", ");
-    Serial.print(z);
-    Serial.print(") | Coxa: ");
-    Serial.print(servo_coxa);
-    Serial.print(" | Hip: ");
-    Serial.print(servo_hip);
-    Serial.print(" | Knee: ");
-    Serial.println(servo_knee);
+    Serial.print(x); Serial.print(", ");
+    Serial.print(y); Serial.print(", ");
+    Serial.print(z); Serial.print(") | Coxa: ");
+    Serial.print(c); Serial.print(" | Hip: ");
+    Serial.print(f); Serial.print(" | Knee: ");
+    Serial.println(t);
+    */
+}
+void Leg::home() {
+    moveTo(_cfg.femurLength, _cfg.tibiaLength, 0.0f);
 }
 
-void Leg::home() {
-    moveTo(_cfg.femurLength, _cfg.tibiaLength, 0);
+void Leg::stand() {
+    moveTo(0.5,10,0);
+}
+
+void Leg::crouch() {
+    moveTo(-1,8,0);
 }
 
 void Leg::fold() {
-    moveTo(_cfg.femurLength + _cfg.coxaLength,0, _cfg.tibiaLength);
+    moveTo(-_cfg.tibiaLength, 0.0f, _cfg.femurLength);
+}
+
+void Leg::moveToSmooth(float x, float y, float z, float maxDegPerSec, uint16_t stepMs) {
+    float endCoxa, endFemur, endTibia;
+    solveIK(x, y, z, endCoxa, endFemur, endTibia);
+
+    float curCoxa  = _coxa.getAngle();
+    float curFemur = _femur.getAngle();
+    float curTibia = _tibia.getAngle();
+
+    float maxDegPerStep = maxDegPerSec * ((float)stepMs / 1000.0f);
+    while (true) {
+        bool done = true;
+
+        auto step = [&](float cur, float end) -> float {
+            float diff = end - cur;
+            if (abs(diff) <= maxDegPerStep) return end;
+            done = false;
+            return cur + (diff > 0 ? maxDegPerStep : -maxDegPerStep);
+        };
+
+        curCoxa  = step(curCoxa,  endCoxa);
+        curFemur = step(curFemur, endFemur);
+        curTibia = step(curTibia, endTibia);
+
+        _coxa.setAngle(curCoxa);
+        _femur.setAngle(curFemur);
+        _tibia.setAngle(curTibia);
+
+        if (done) break;
+        delay(stepMs);
+    }
 }
