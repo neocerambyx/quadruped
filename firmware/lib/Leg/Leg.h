@@ -21,7 +21,13 @@ public:
 
     void home();  // Return to safe position
 
-    void fold(); // Home abducted 90 deg.
+    void stand();  // stand
+
+    void crouch();
+
+    void fold();  // Home abducted 90 deg.
+
+    void moveToSmooth(float x, float y, float z, float maxDegPerSec = 120.0f, uint16_t stepMs = 10);
 
 public:
     LegConfig _cfg;  // Store settings in class
@@ -29,4 +35,7 @@ public:
     Joint _coxa;
     Joint _femur;
     Joint _tibia;
+
+private:
+    void solveIK(float x, float y, float z, float& outCoxa, float& outFemur, float& outTibia);
 };
