@@ -19,10 +19,12 @@ public:
     Joint(Adafruit_PWMServoDriver* _driver, JointConfig config);
 
     void setAngle(float Angle);
+    float getAngle() const { return _currentAngle;}
 
     private:
     Adafruit_PWMServoDriver* _driver;
     JointConfig _cfg;
 
+     float _currentAngle = 90.0f;
     uint16_t degreesToPulse(float angle);
 };
