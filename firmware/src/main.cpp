@@ -1,79 +1,131 @@
 #include <Adafruit_PWMServoDriver.h>
 #include <Arduino.h>
 #include <Leg.h>
+#include <Robot.h>
 #include <Wire.h>
-#include <math.h>
 
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
+constexpr uint32_t OSC_FREQ = 25500000;
+constexpr uint8_t PWM_FREQ = 50;
 
-// Servo Constants
-constexpr uint16_t SERVOMIN = 140;  // Min. Pulse Width (µs)
-constexpr uint16_t SERVOMAX = 520;  // Max. Pulse Width (µs)
-constexpr uint8_t FREQ = 50;        // PWM Period (Hz)
+constexpr uint16_t SERVO_MIN_US = 560;
+constexpr uint16_t SERVO_MID_US = 1610;  // for reference
+constexpr uint16_t SERVO_MAX_US = 2600;
 
-// Mechanical Constants
-constexpr float COXA_LENGTH = 2.9f;   // Hip adduction/abduction
-constexpr float FEMUR_LENGTH = 6.0f;  // Hip flexion
-constexpr float TIBIA_LENGTH = 8.0f;  // Knee flexion
+constexpr float COXA_LENGTH = 0.0f;
+constexpr float FEMUR_LENGTH = 10.0f;
+constexpr float TIBIA_LENGTH = 10.0f;
 
 const LegConfig FRONT_LEFT_CONF = {
-
-    .coxa = {.id = 0, .minPulse = SERVOMIN, .maxPulse = SERVOMAX, .minAngle = 0.0f, .maxAngle = 180.0f, .offset = 0.0f, .inverted = false},
-
-    .femur = {.id = 1, .minPulse = SERVOMIN, .maxPulse = SERVOMAX, .minAngle = 12.0f, .maxAngle = 180.0f, .offset = 5.0f, .inverted = true},  // TODO
-
-    .tibia = {.id = 2, .minPulse = SERVOMIN, .maxPulse = SERVOMAX, .minAngle = 0.0f, .maxAngle = 110.0f, .inverted = false},
-
+    .coxa = {.id = 0, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 180.0f, .offset = 0.0f, .inverted = false},
+    .femur = {.id = 1, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 12.0f, .maxAngle = 180.0f, .offset = 0.0f, .inverted = true},
+    .tibia = {.id = 2, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 110.0f, .offset = 0.0f, .inverted = false},
     .coxaLength = COXA_LENGTH,
     .femurLength = FEMUR_LENGTH,
-    .tibiaLength = TIBIA_LENGTH};
+    .tibiaLength = TIBIA_LENGTH,
+};
 
-Leg testLeg(&pwm, FRONT_LEFT_CONF);
+const LegConfig REAR_LEFT_CONF = {
 
-// Leg State
-float footX = 0;
-float footY = 0;
-float footZ = 0;
+    .coxa = {.id = 4, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 180.0f, .offset = 0.0f, .inverted = false},
+    .femur = {.id = 6, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 12.0f, .maxAngle = 180.0f, .offset = -7.2f, .inverted = true},
+    .tibia = {.id = 5, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 110.0f, .offset = 3.6f, .inverted = false},
+    .coxaLength = COXA_LENGTH,
+    .femurLength = FEMUR_LENGTH,
+    .tibiaLength = TIBIA_LENGTH,
+};
+
+const LegConfig FRONT_RIGHT_CONF = {
+
+    .coxa = {.id = 12, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 180.0f, .offset = -7.2f, .inverted = false},
+    .femur =
+        {.id = 13, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 12.0f, .maxAngle = 180.0f, .offset = -7.2f, .inverted = false},
+    .tibia = {.id = 14, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 110.0f, .offset = 0.0f, .inverted = true},
+    .coxaLength = COXA_LENGTH,
+    .femurLength = FEMUR_LENGTH,
+    .tibiaLength = TIBIA_LENGTH,
+};
+
+const LegConfig REAR_RIGHT_CONF = {
+
+    .coxa = {.id = 8, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 180.0f, .offset = 0.0f, .inverted = false},
+    .femur = {.id = 9, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 12.0f, .maxAngle = 180.0f, .offset = 7.2f, .inverted = false},
+    .tibia = {.id = 10, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 110.0f, .offset = -3.6f, .inverted = true},
+    .coxaLength = COXA_LENGTH,
+    .femurLength = FEMUR_LENGTH,
+    .tibiaLength = TIBIA_LENGTH,
+};
+
+Leg FL(&pwm, FRONT_LEFT_CONF);
+
+Leg RL(&pwm, REAR_LEFT_CONF);
+
+Leg FR(&pwm, FRONT_RIGHT_CONF);
+
+Leg RR(&pwm, REAR_RIGHT_CONF);
+
+Robot robot(&FL, &RL, &FR, &RR);
+
 
 void setup() {
     Serial.begin(115200);
-
     delay(1000);
-    Serial.println("Initialized. \n");
 
     pwm.begin();
-    pwm.setOscillatorFrequency(27000000);  // 25MHz internal clock but ~27MHz actual recommended by manufacturer
-    // Need oscilliscope to get chip's precise unique freq.; don't have one yet
-    pwm.setPWMFreq(FREQ);
+    pwm.setOscillatorFrequency(OSC_FREQ);
+    pwm.setPWMFreq(PWM_FREQ);
+    delay(10);  // let oscillator settle
 
-    Serial.println("Homing...");
-    testLeg.home();
-    delay(2000);
-    testLeg.fold();
-    // 0,8,9 for home rotated 90 degrees
+    Serial.println("Initializing...");
+
+    robot.init();
+    Serial.println("Ready.");
 }
 
+
 void loop() {
-    if (Serial.available() > 0) {
+
+    if (Serial.available()) {
         String input = Serial.readStringUntil('\n');
         input.trim();
 
-        int firstSep = input.indexOf(',');
-        int secondSep = input.indexOf(',', firstSep + 1);
+        if (input == "home") {
+            robot.home();
 
-        if (firstSep > 0 && secondSep > firstSep) {
-            float x = input.substring(0, firstSep).toFloat();
-            float y = input.substring(firstSep + 1, secondSep).toFloat();
-            float z = input.substring(secondSep + 1).toFloat();
+            Serial.println("Homed.");
 
-            Serial.print("Moving to: ");
-            Serial.print(x);
-            Serial.print(", ");
-            Serial.print(y);
-            Serial.print(", ");
-            Serial.println(z);
+        } else if (input == "stand") {
+            robot.stand();
+            Serial.println("Standing.");
 
-            testLeg.moveTo(x, y, z);
-        }
+        } else if (input == "crouch") {
+            robot.crouch();
+
+            Serial.println("crouching.");
+
+        } else if (input == "walk") {
+            Serial.println("Walking 10 steps...");
+            robot.trot(10);
+
+        } else {
+            // // still support manual coordinate entry
+            // float x, y, z;
+            // int first = input.indexOf(',');
+            // int second = input.indexOf(',', first + 1);
+            // if (first == -1 || second == -1) {
+            //     Serial.println("Commands: walk, crouch, stand, home, or x,y,z");
+            //     return;
+            // }
+            // x = input.substring(0, first).toFloat();
+            // y = input.substring(first + 1, second).toFloat();
+            // z = input.substring(second + 1).toFloat();
+            // Serial.print("Moving to: ");
+            // Serial.print(x);
+            // Serial.print(", ");
+            // Serial.print(y);
+            // Serial.print(", ");
+            // Serial.println(z);
+            // RL.moveToSmooth(x, y, z);
+    //     }
     }
 }
