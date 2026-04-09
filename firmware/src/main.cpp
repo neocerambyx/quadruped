@@ -58,6 +58,7 @@ const LegConfig REAR_RIGHT_CONF = {
 
 Leg FL(&pwm, FRONT_LEFT_CONF);
 
+
 Leg RL(&pwm, REAR_LEFT_CONF);
 
 Leg FR(&pwm, FRONT_RIGHT_CONF);
@@ -78,13 +79,14 @@ void setup() {
 
     Serial.println("Initializing...");
 
+
+    delay(100);
+
     robot.init();
     Serial.println("Ready.");
 }
 
-
 void loop() {
-
     if (Serial.available()) {
         String input = Serial.readStringUntil('\n');
         input.trim();
@@ -98,34 +100,50 @@ void loop() {
             robot.stand();
             Serial.println("Standing.");
 
-        } else if (input == "crouch") {
-            robot.crouch();
-
-            Serial.println("crouching.");
-
         } else if (input == "walk") {
             Serial.println("Walking 10 steps...");
             robot.trot(10);
+        }
+     else if (input == "look_up") {
+        // Pitch 15 degrees up, 0 roll, 0 height offset
+        robot.setStance(15.0f, 0.0f, 0.0f);
+        Serial.println("Looking up!");
 
-        } else {
-            // // still support manual coordinate entry
-            // float x, y, z;
-            // int first = input.indexOf(',');
-            // int second = input.indexOf(',', first + 1);
-            // if (first == -1 || second == -1) {
-            //     Serial.println("Commands: walk, crouch, stand, home, or x,y,z");
-            //     return;
-            // }
-            // x = input.substring(0, first).toFloat();
-            // y = input.substring(first + 1, second).toFloat();
-            // z = input.substring(second + 1).toFloat();
-            // Serial.print("Moving to: ");
-            // Serial.print(x);
-            // Serial.print(", ");
-            // Serial.print(y);
-            // Serial.print(", ");
-            // Serial.println(z);
-            // RL.moveToSmooth(x, y, z);
-    //     }
+    } else if (input == "look_down") {
+        // Pitch -15 degrees down, 0 roll, 0 height offset
+        robot.setStance(-15.0f, 0.0f, 0.0f);
+        Serial.println("Looking down!");
+
+    } else if (input == "tilt_right") {
+        // 0 pitch, 15 degrees roll, 0 height offset
+        robot.setStance(0.0f, 15.0f, 0.0f);
+        Serial.println("Tilting right!");
+
+    } else if (input == "crouch") {
+        // 0 pitch, 0 roll, drop the body by 3 units
+        robot.setStance(0.0f, 0.0f, -5.0f);
+        Serial.println("Crouching!");
+    } else {
+        // // still support manual coordinate entry
+        // float x, y, z;
+        // int first = input.indexOf(',');
+        // int second = input.indexOf(',', first + 1);
+        // if (first == -1 || second == -1) {
+        //     Serial.println("Commands: walk, crouch, stand, home, or x,y,z");
+        //     return;
+        // }
+        // x = input.substring(0, first).toFloat();
+        // y = input.substring(first + 1, second).toFloat();
+        // z = input.substring(second + 1).toFloat();
+        // Serial.print("Moving to: ");
+        // Serial.print(x);
+        // Serial.print(", ");
+        // Serial.print(y);
+        // Serial.print(", ");
+        // Serial.println(z);
+        // RL.moveToSmooth(x, y, z);
+        //     }
     }
+}
+
 }
