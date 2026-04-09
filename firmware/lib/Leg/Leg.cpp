@@ -65,7 +65,7 @@ void Leg::enable() {
 }
 
 void Leg::stand() {
-    moveTo(0.5,10,0);
+    moveTo(0.5,15,0);
 }
 
 void Leg::crouch() {
