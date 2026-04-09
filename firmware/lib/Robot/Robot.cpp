@@ -38,16 +38,16 @@ void Robot::crouch() {
 // diagonal leg pairs move 180 degrees out of phase
 
 void Robot::trot(int steps) {
-    float y_stand = 12.0f;  // standing height
-    float y_lift = 9.0f;    // height at peak of step
-    float x_stride = 2.0f;  // forward/backward stride distance
+    float y_stand = 14.0f;  // standing height
+    float y_lift = 11.0f;    // height at peak of step
+    float x_stride = 6.0f;  // forward/backward stride distance
     float x_offset = 0.5f;  // centers stride exactly standing position
     float z_pos = 0.0f;
 
     for (int i = 0; i < steps; i++) {
         // start t at PI/2 so the cycle begins exactly at x_offset
         // so transition from standing to walking is smooth
-        for (float t = PI / 2; t <= 2.5f * PI; t += 0.25f) {
+        for (float t = PI / 2; t <= 2.5f * PI; t += 0.15f) {
             // FL & RR
             float leg1_x = x_offset + x_stride * cos(t);
             float leg1_y = y_stand;
@@ -79,4 +79,33 @@ void Robot::trot(int steps) {
     backLeft->stand();
     frontRight->stand();
     backRight->stand();
+}
+
+void Robot::setStance(float pitchDeg, float rollDeg, float yOffset) {
+    // stop walking if we are posing
+    _isWalking = false;
+
+    // convert degrees to radians
+    float pitchRad = pitchDeg * PI / 180.0f;
+    float rollRad = rollDeg * PI / 180.0f;
+
+    // calculate how much Y to change for the front/back and left/right
+
+    float frontYOffset = (_bodyLength / 2.0f) * sin(pitchRad);
+    float backYOffset  = -(_bodyLength / 2.0f) * sin(pitchRad);
+
+    float leftYOffset  = -(_bodyWidth / 2.0f) * sin(rollRad);
+    float rightYOffset = (_bodyWidth / 2.0f) * sin(rollRad);
+
+    // calculate final target Y for each leg by combining offsets
+    float fl_y = _restY + yOffset + frontYOffset + leftYOffset;
+    float fr_y = _restY + yOffset + frontYOffset + rightYOffset;
+    float bl_y = _restY + yOffset + backYOffset + leftYOffset;
+    float br_y = _restY + yOffset + backYOffset + rightYOffset;
+
+    // command legs to move to new stance 
+    frontLeft->moveTo(_restX, fl_y, _restZ);
+    frontRight->moveTo(_restX, fr_y, _restZ);
+    backLeft->moveTo(_restX, bl_y, _restZ);
+    backRight->moveTo(_restX, br_y, _restZ);
 }
