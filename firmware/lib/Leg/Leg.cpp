@@ -50,6 +50,19 @@ void Leg::moveTo(float x, float y, float z) {
 void Leg::home() {
     moveTo(_cfg.femurLength, _cfg.tibiaLength, 0.0f);
 }
+void Leg::disable() {
+    isEnabled = false;
+    _coxa.disable();
+    _femur.disable();
+    _tibia.disable();
+}
+
+void Leg::enable() {
+    isEnabled = true;
+    _coxa.enable();
+    _femur.enable();
+    _tibia.enable();
+}
 
 void Leg::stand() {
     moveTo(0.5,10,0);
