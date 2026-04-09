@@ -20,7 +20,9 @@ public:
 
     void setAngle(float Angle);
     float getAngle() const { return _currentAngle;}
-
+    bool isEnabled = true;
+    void disable();
+    void enable();
     private:
     Adafruit_PWMServoDriver* _driver;
     JointConfig _cfg;
