@@ -35,7 +35,9 @@ public:
     Joint _coxa;
     Joint _femur;
     Joint _tibia;
-
+    bool isEnabled = true;
+    void disable();
+    void enable();
 private:
     void solveIK(float x, float y, float z, float& outCoxa, float& outFemur, float& outTibia);
 };
