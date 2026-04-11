@@ -18,3 +18,4 @@ electronics/logic board v1/fp-info-cache
 /hardware/step/v3
 firmware/test/README
 *.kicad_sch-bak
+*.3mf
