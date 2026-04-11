@@ -5,7 +5,7 @@
 #include <Wire.h>
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
-constexpr uint32_t OSC_FREQ = 25500000;
+constexpr uint32_t OSC_FREQ = 25000000;
 constexpr uint8_t PWM_FREQ = 50;
 
 constexpr uint16_t SERVO_MIN_US = 560;
@@ -27,7 +27,7 @@ const LegConfig FRONT_LEFT_CONF = {
 
 const LegConfig REAR_LEFT_CONF = {
 
-    .coxa = {.id = 4, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 180.0f, .offset = 0.0f, .inverted = false},
+    .coxa = {.id = 4, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 180.0f, .offset = 7.2f, .inverted = false},
     .femur = {.id = 6, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 12.0f, .maxAngle = 180.0f, .offset = -7.2f, .inverted = true},
     .tibia = {.id = 5, .minPulse = SERVO_MIN_US, .maxPulse = SERVO_MAX_US, .minAngle = 0.0f, .maxAngle = 110.0f, .offset = 3.6f, .inverted = false},
     .coxaLength = COXA_LENGTH,
